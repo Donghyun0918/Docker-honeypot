@@ -1,0 +1,25 @@
+# Cowrie userdb.txt
+# Format: username:uid:password (use * to match any password)
+# These credentials are accepted and logged by Cowrie
+
+root:0:*
+admin:0:admin
+admin:0:password
+admin:0:123456
+admin:0:admin123
+pi:1000:raspberry
+pi:1000:pi
+user:1000:user
+user:1000:password
+test:1000:test
+test:1000:test123
+ubuntu:1000:ubuntu
+guest:1000:guest
+oracle:1000:oracle
+postgres:1000:postgres
+mysql:1000:mysql
+support:1000:support
+operator:1000:operator
+deploy:1000:deploy
+ansible:1000:ansible
+vagrant:1000:vagrant

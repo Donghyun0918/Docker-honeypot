@@ -1,0 +1,151 @@
+networks:
+  honeypot-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUBNET}
+
+services:
+
+  # ── Cowrie: SSH/Telnet 허니팟 ─────────────────────────────────────────────
+  cowrie:
+    image: cowrie/cowrie:latest
+    container_name: cowrie
+    hostname: cowrie-ssh
+    networks:
+      honeypot-net:
+        ipv4_address: ${COWRIE_IP}
+    ports:
+      - "2222:2222"
+      - "2223:2223"
+    volumes:
+      - "./honeypots/cowrie/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro"
+      - "./honeypots/cowrie/userdb.txt:/cowrie/cowrie-git/etc/userdb.txt:ro"
+      - "/mnt/d/honeypot_logs/cowrie:/tmp/cowrie_logs"
+    cap_add:
+      - NET_BIND_SERVICE
+    restart: unless-stopped
+
+  # ── Heralding: HTTP/MySQL 인증 허니팟 ─────────────────────────────────────
+  heralding:
+    build:
+      context: ./honeypots/heralding
+      dockerfile: Dockerfile
+    container_name: heralding
+    hostname: heralding
+    networks:
+      honeypot-net:
+        ipv4_address: ${HERALDING_IP}
+    ports:
+      - "8880:80"
+      - "33306:3306"
+    volumes:
+      - "/mnt/d/honeypot_logs/heralding:/var/log/heralding"
+    restart: unless-stopped
+
+  # ── OpenCanary: 포트스캔/RDP/VNC 탐지 ────────────────────────────────────
+  opencanary:
+    build:
+      context: ./honeypots/opencanary
+      dockerfile: Dockerfile
+    container_name: opencanary
+    hostname: opencanary
+    networks:
+      honeypot-net:
+        ipv4_address: ${OPENCANARY_IP}
+    ports:
+      - "2121:21"
+      - "33389:3389"
+      - "55900:5900"
+    volumes:
+      - "/mnt/d/honeypot_logs/opencanary:/var/log/opencanary"
+    restart: unless-stopped
+
+  # ── SNARE: 웹 공격 허니팟 (커스텀 빌드) ──────────────────────────────────
+  snare:
+    build:
+      context: ./honeypots/snare
+      dockerfile: Dockerfile
+    container_name: snare
+    hostname: snare
+    networks:
+      honeypot-net:
+        ipv4_address: ${SNARE_IP}
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/mnt/d/honeypot_logs/snare:/var/log/snare"
+    restart: unless-stopped
+
+  # ── Dionaea: SMB/멀웨어 허니팟 ───────────────────────────────────────────
+  dionaea:
+    image: dinotools/dionaea:latest
+    container_name: dionaea
+    hostname: dionaea
+    networks:
+      honeypot-net:
+        ipv4_address: ${DIONAEA_IP}
+    ports:
+      - "4445:445"
+      - "4421:21"
+      - "14433:1433"
+    volumes:
+      - "/mnt/d/honeypot_logs/dionaea:/opt/dionaea/var/log/dionaea"
+    cap_add:
+      - NET_BIND_SERVICE
+    restart: unless-stopped
+
+  # ── Mailoney: SMTP 스팸/피싱 허니팟 (커스텀 빌드) ────────────────────────
+  mailoney:
+    build:
+      context: ./honeypots/mailoney
+      dockerfile: Dockerfile
+    container_name: mailoney
+    hostname: mailoney
+    networks:
+      honeypot-net:
+        ipv4_address: ${MAILONEY_IP}
+    ports:
+      - "2525:25"
+    volumes:
+      - "/mnt/d/honeypot_logs/mailoney:/var/log/mailoney"
+    restart: unless-stopped
+
+  # ── Conpot: ICS/SCADA 허니팟 ─────────────────────────────────────────────
+  conpot:
+    build:
+      context: ./honeypots/conpot
+      dockerfile: Dockerfile
+    container_name: conpot
+    hostname: conpot
+    networks:
+      honeypot-net:
+        ipv4_address: ${CONPOT_IP}
+    ports:
+      - "10102:102"
+      - "5502:502"
+      - "16100:161/udp"
+    volumes:
+      - "/mnt/d/honeypot_logs/conpot:/var/log/conpot"
+    restart: unless-stopped
+
+  # ── Kali: 공격자 컨테이너 ────────────────────────────────────────────────
+  kali:
+    build:
+      context: ./kali
+      dockerfile: Dockerfile
+    container_name: kali-attacker
+    hostname: kali
+    networks:
+      honeypot-net:
+        ipv4_address: ${KALI_IP}
+    volumes:
+      - "./attack_scenarios:/attack_scenarios"
+      - "./scripts:/scripts"
+      - "/mnt/d/honeypot_logs:/honeypot_logs"
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: "no"

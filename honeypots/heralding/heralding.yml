@@ -1,0 +1,38 @@
+protocols:
+  ftp:
+    enabled: false
+  http:
+    enabled: true
+    port: 80
+  https:
+    enabled: false
+  smtp:
+    enabled: false
+  pop3:
+    enabled: false
+  imap:
+    enabled: false
+  ssh:
+    enabled: false
+  telnet:
+    enabled: false
+  mysql:
+    enabled: true
+    port: 3306
+  mssql:
+    enabled: false
+  rdp:
+    enabled: false
+  vnc:
+    enabled: false
+  sip:
+    enabled: false
+  postgresql:
+    enabled: false
+
+options:
+  session_timeout: 30
+  log_path: /var/log/heralding
+  database_file: /var/log/heralding/heralding.db
+  auth_log_file: /var/log/heralding/auth.csv
+  session_log_file: /var/log/heralding/session.csv

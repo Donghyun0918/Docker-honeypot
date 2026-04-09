@@ -1,0 +1,21 @@
+# 로컬 환경 설정 (경로가 시스템마다 다름)
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# 생성된 로그 및 데이터셋 (honeypot_logs/는 repo 외부에 있으나 혹시 옮겨질 경우 대비)
+*.csv
+*.log
+*.sqlite
+*.json.gz
+scenario_*.log
