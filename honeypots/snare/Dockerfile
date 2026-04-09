@@ -15,7 +15,10 @@ WORKDIR /snare
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir .
 
-RUN mkdir -p /var/log/snare /snare/pages/example.com
+RUN mkdir -p /var/log/snare /snare/pages/example.com /opt/snare
+
+RUN echo '<!DOCTYPE html><html><head><title>404</title></head><body><h1>404 Not Found</h1></body></html>' \
+    > /snare/pages/example.com/status_404
 
 RUN echo '<!DOCTYPE html>\
 <html><head><title>Login</title></head>\
@@ -36,4 +39,5 @@ EXPOSE 8080
 CMD ["snare", \
      "--port", "8080", \
      "--host-ip", "0.0.0.0", \
-     "--page-dir", "/snare/pages/example.com"]
+     "--page-dir", "/snare/pages/example.com", \
+     "--tanner", "tanner"]

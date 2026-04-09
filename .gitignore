@@ -13,6 +13,12 @@ __pycache__/
 .vscode/
 .idea/
 
+# 개인 메모 (README.md로 대체)
+PROJECT_SUMMARY.md
+
+# Claude Code 설정 디렉터리
+.claude/
+
 # 생성된 로그 및 데이터셋 (honeypot_logs/는 repo 외부에 있으나 혹시 옮겨질 경우 대비)
 *.csv
 *.log

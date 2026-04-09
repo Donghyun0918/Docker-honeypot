@@ -61,6 +61,18 @@ services:
       - "/mnt/d/honeypot_logs/opencanary:/var/log/opencanary"
     restart: unless-stopped
 
+  # ── Tanner: SNARE 분석 서버 스텁 ─────────────────────────────────────────
+  tanner:
+    build:
+      context: ./honeypots/tanner
+      dockerfile: Dockerfile
+    container_name: tanner
+    hostname: tanner
+    networks:
+      honeypot-net:
+        ipv4_address: ${TANNER_IP}
+    restart: unless-stopped
+
   # ── SNARE: 웹 공격 허니팟 (커스텀 빌드) ──────────────────────────────────
   snare:
     build:
@@ -74,7 +86,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - "/mnt/d/honeypot_logs/snare:/var/log/snare"
+      - "/mnt/d/honeypot_logs/snare:/opt/snare"
     restart: unless-stopped
 
   # ── Dionaea: SMB/멀웨어 허니팟 ───────────────────────────────────────────

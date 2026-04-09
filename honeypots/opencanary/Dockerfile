@@ -15,4 +15,4 @@ COPY opencanary.conf /etc/opencanaryd/opencanary.conf
 
 EXPOSE 21 3389 5900
 
-CMD ["opencanaryd", "--start", "--uid=root", "--gid=root"]
+CMD ["opencanaryd", "--dev"]
