@@ -247,15 +247,33 @@ def parse_opencanary():
 # ── SNARE JSON 파서 ───────────────────────────────────────────────────────────
 
 def parse_snare():
-    """SNARE JSON lines: HTTP 공격 로그"""
+    """
+    SNARE 로그 파싱: JSON lines (*.json*) + 텍스트 로그 (snare.log)
+    SNARE는 /opt/snare/snare.log 에 텍스트 형식으로 기록함
+    """
+    import re
     input_rows = []
-    log_files = sorted(glob.glob(str(LOG_BASE / "snare" / "*.json*")))
-    if not log_files:
-        print("[snare] 로그 파일 없음, 건너뜀")
-        return [], [], input_rows
 
-    for logfile in log_files:
-        print(f"[snare] 파싱: {logfile}")
+    def add_row(ts, src_ip, path):
+        full_cmd = path
+        input_rows.append({
+            "timestamp": ts,
+            "src_ip": src_ip,
+            "dst_port": 8080,
+            "protocol": "HTTP",
+            "command": path,
+            "has_wget": int("wget" in full_cmd),
+            "has_curl": int("curl" in full_cmd),
+            "has_reverse_shell": int(any(x in full_cmd for x in [
+                "nc ", "/dev/tcp", "python", "bash -i"
+            ])),
+            "source_honeypot": "snare", "label": ""
+        })
+
+    # JSON 형식 파일 파싱
+    json_files = sorted(glob.glob(str(LOG_BASE / "snare" / "*.json*")))
+    for logfile in json_files:
+        print(f"[snare] 파싱(JSON): {logfile}")
         with open(logfile, encoding="utf-8", errors="replace") as f:
             for line in f:
                 line = line.strip()
@@ -265,23 +283,30 @@ def parse_snare():
                     e = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-
                 path = e.get("path", e.get("request_path", ""))
-                headers = str(e.get("headers", ""))
-                full_cmd = path + " " + headers
-                input_rows.append({
-                    "timestamp": e.get("timestamp", e.get("time", "")),
-                    "src_ip": e.get("peer", e.get("remote_ip", e.get("src_ip", ""))),
-                    "dst_port": 8080,
-                    "protocol": "HTTP",
-                    "command": path,
-                    "has_wget": int("wget" in full_cmd),
-                    "has_curl": int("curl" in full_cmd),
-                    "has_reverse_shell": int(any(x in full_cmd for x in [
-                        "nc ", "/dev/tcp", "python", "bash -i"
-                    ])),
-                    "source_honeypot": "snare", "label": ""
-                })
+                ts = e.get("timestamp", e.get("time", ""))
+                src = e.get("peer", e.get("remote_ip", e.get("src_ip", "")))
+                add_row(ts, src, path)
+
+    # 텍스트 로그 파싱 (snare.log)
+    # 형식 예: 2026-04-09 12:00:00,123 - INFO - 172.30.0.20 - GET /path HTTP/1.1
+    text_log = LOG_BASE / "snare" / "snare.log"
+    if text_log.exists():
+        print(f"[snare] 파싱(text): {text_log}")
+        pattern = re.compile(
+            r'(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})'
+            r'.*?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+            r'.*?(GET|POST|PUT|DELETE|HEAD|OPTIONS|PATCH)\s+(\S+)'
+        )
+        with open(text_log, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = pattern.search(line)
+                if m:
+                    ts, src_ip, method, path = m.group(1), m.group(2), m.group(3), m.group(4)
+                    add_row(ts, src_ip, f"{method} {path}")
+
+    if not json_files and not text_log.exists():
+        print("[snare] 로그 파일 없음, 건너뜀")
 
     print(f"[snare] input={len(input_rows)}")
     return [], [], input_rows
