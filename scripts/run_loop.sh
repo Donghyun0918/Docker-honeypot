@@ -79,7 +79,6 @@ for run in $(seq 1 "$RUNS"); do
         echo ""
         echo " [중간 파싱] Run ${run} 완료, 로그 파싱 중..."
         python3 /scripts/parse_logs.py 2>/dev/null | tail -5 || true
-        python3 /scripts/label_data.py 2>/dev/null | tail -10 || true
         echo ""
     fi
 done
@@ -95,7 +94,6 @@ echo " 최종 파싱 시작..."
 echo "=============================================="
 
 python3 /scripts/parse_logs.py
-python3 /scripts/label_data.py
 
 echo ""
 echo "=============================================="

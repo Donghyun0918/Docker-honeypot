@@ -42,7 +42,6 @@ DATASET_FIELDS = [
     "username", "password", "login_success",
     "duration", "login_attempts",
     "command", "has_wget", "has_curl", "has_reverse_shell",
-    "label",
 ]
 
 REVERSE_SHELL_PATTERNS = [
@@ -57,7 +56,6 @@ def make_row(
     username="", password="", login_success="",
     duration="", login_attempts="",
     command="", has_wget=0, has_curl=0, has_reverse_shell=0,
-    label="",
 ):
     return {
         "timestamp": timestamp,
@@ -75,7 +73,6 @@ def make_row(
         "has_wget": has_wget,
         "has_curl": has_curl,
         "has_reverse_shell": has_reverse_shell,
-        "label": label,
     }
 
 
@@ -468,6 +465,5 @@ if __name__ == "__main__":
     print("=" * 55)
     write_csv(all_rows, DATASET_FIELDS, OUT_BASE / "dataset.csv")
     print()
-    print(" 완료! 다음 단계:")
-    print("   python3 /scripts/label_data.py")
+    print(" 완료!")
     print("=" * 55)
