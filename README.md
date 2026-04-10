@@ -144,27 +144,39 @@ docker exec -it kali-attacker bash /scripts/run_loop.sh 40 5
 docker exec kali-attacker python3 /scripts/parse_logs.py
 ```
 
-### 출력 파일: `dataset.csv` (단일 통합 파일, 15컬럼)
+### 출력 파일: `dataset.csv` (단일 통합 파일, 27컬럼)
 
-레이블 없는 순수 피처 데이터셋.
+레이블 없는 순수 원시 로그 데이터셋. 이벤트 1개 = 행 1개.
 
-| 컬럼 | 설명 | 주요 event_type |
-|------|------|----------------|
-| `timestamp` | ISO 8601 UTC | 전체 |
+| 컬럼 | 설명 | 비고 |
+|------|------|------|
+| `event_id` | UUID v4 (행별 고유 식별자) | 전체 |
+| `session_id` | 세션 식별자 (native 또는 src_ip+port+ts MD5 해시) | 전체 |
+| `timestamp` | ISO 8601 UTC (이벤트 발생 시각) | 전체 |
+| `ingest_time` | ISO 8601 UTC (파싱 실행 시각) | 전체 |
 | `src_ip` | 공격자 IP | 전체 |
-| `dst_port` | 대상 포트 (정수) | 전체 |
-| `protocol` | SSH / HTTP / FTP / SMTP / MYSQL / RDP / MODBUS / S7COMM / SMB / MSSQL / PORTSCAN 등 (대문자 정규화) | 전체 |
+| `src_port` | 공격자 출발 포트 | cowrie, heralding, dionaea |
+| `dst_ip` | 허니팟 IP (허니팟별 고정값) | 전체 |
+| `dst_port` | 허니팟 포트 (정수) | 전체 |
+| `transport` | TCP / UDP (protocol에서 자동 결정) | 전체 |
+| `protocol` | SSH / HTTP / FTP / SMTP / MYSQL / RDP / MODBUS / S7COMM / SMB / MSSQL / PORTSCAN 등 | 전체 |
 | `source_honeypot` | cowrie / heralding / opencanary / snare / dionaea / mailoney / conpot | 전체 |
 | `event_type` | **auth / session / command / scan** | 전체 |
+| `event_result` | auth: success/fail  session: closed  command: executed  scan: detected | 전체 |
 | `username` | 인증 시도 사용자명 | auth |
 | `password` | 인증 시도 패스워드 | auth |
 | `login_success` | 0 / 1 | auth |
+| `attempt_no` | 세션 내 인증 시도 순번 (1, 2, 3 ...) | auth |
 | `duration` | 세션 길이 (초) | session |
-| `login_attempts` | 세션 내 로그인 시도 수 | session |
-| `command` | 실행 명령어 또는 HTTP 요청 경로 | command |
+| `login_attempts` | 세션 내 총 로그인 시도 수 | session |
+| `http_method` | GET / POST / PUT / DELETE / ... | HTTP command |
+| `http_path` | URL 경로 (/login, /admin ...) | HTTP command |
+| `http_query` | 쿼리 문자열 — SQLi/XSS/LFI 페이로드 원문 포함 | HTTP command |
+| `command` | 실행 명령어 또는 HTTP 전체 원본 문자열 (raw) | command |
 | `has_wget` | 0 / 1 | command |
 | `has_curl` | 0 / 1 | command |
 | `has_reverse_shell` | 0 / 1 | command |
+| `parser_version` | 파서 버전 (재현성 보장) | 전체 |
 
 ### 허니팟별 event_type 매핑
 
@@ -177,6 +189,32 @@ docker exec kali-attacker python3 /scripts/parse_logs.py
 | dionaea | session |
 | mailoney | auth |
 | conpot | session |
+
+---
+
+## 피처 엔지니어링 (선택)
+
+`dataset.csv`를 ML 학습 가능한 수치형 데이터셋(`dataset_ml.csv`)으로 변환한다.
+
+```bash
+docker exec kali-attacker python3 /scripts/feature_engineering.py
+```
+
+**변환 내용:**
+
+| 작업 | 상세 |
+|------|------|
+| 제거 | `event_id`, `session_id`, `ingest_time` (메타), `src_ip`, `src_port`, `dst_ip`, `transport` (과적합 또는 중복), `timestamp`, `username`, `password`, `command` (raw) |
+| 시간 피처 | `hour`, `is_night` (22:00~06:00), `day_of_week` |
+| 커맨드 피처 | `cmd_length`, `special_char_cnt`, `pipe_count` |
+| 결측 처리 | `duration` / `login_attempts` / `login_success` → 0 |
+| 인코딩 | `protocol` / `source_honeypot` / `event_type` → Label Encoding |
+| 타겟 생성 | `is_attack` (0=정상 / 1=공격, rule-based) |
+
+인코딩 맵은 `dataset_ml_encoders.json`에 저장된다.
+
+> **클래스 불균형 주의:** 허니팟 특성상 정상 데이터 비율이 높을 수 있다.  
+> 학습 시 `class_weight='balanced'` 또는 SMOTE 오버샘플링을 권장한다.
 
 ---
 
@@ -235,8 +273,9 @@ Docker-honeypot/
 └── scripts/
     ├── run_scenarios.sh  ← 9종 시나리오 1회 실행
     ├── run_loop.sh       ← N회 반복 실행 (대용량 수집)
-    ├── parse_logs.py     ← 7종 허니팟 로그 → dataset.csv
-    └── label_data.py     ← 타임스탬프 + rule-based 레이블링 (선택)
+    ├── parse_logs.py          ← 7종 허니팟 로그 → dataset.csv
+    ├── feature_engineering.py ← dataset.csv → dataset_ml.csv (ML 전처리)
+    └── label_data.py          ← 타임스탬프 + rule-based 레이블링 (선택)
 ```
 
 **로그 출력 경로 (repo 외부):**
