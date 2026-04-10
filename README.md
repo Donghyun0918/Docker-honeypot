@@ -1,7 +1,7 @@
 # Docker Honeypot Lab
 
 Docker 기반 허니팟 7종과 Kali Linux 공격자 컨테이너로 구성된 폐쇄형 사이버 공격 시뮬레이션 랩.  
-9가지 공격 시나리오를 자동 실행하고, 수집된 로그를 ML 학습용 레이블된 단일 CSV 데이터셋으로 변환한다.
+9가지 공격 시나리오를 자동 실행하고, 수집된 로그를 ML 학습용 단일 CSV 데이터셋으로 변환한다.
 
 > **주의:** 이 프로젝트는 교육·연구 목적의 격리된 로컬 환경 전용입니다.  
 > 외부 네트워크에 절대 노출하지 마세요.
@@ -30,11 +30,11 @@ honeypot-net (172.30.0.0/24)
 | 컨테이너 | 이미지 | 수집 공격 유형 | 로그 포맷 |
 |----------|--------|---------------|-----------|
 | cowrie | `cowrie/cowrie:latest` | SSH/Telnet 브루트포스, 명령어, 리버스 셸 | JSON |
-| heralding | 커스텀 빌드 | HTTP/MySQL 인증 시도 | CSV |
+| heralding | 커스텀 빌드 | HTTP Basic Auth, MySQL 인증 시도 | CSV |
 | opencanary | 커스텀 빌드 | FTP/RDP/VNC 접근 시도, 포트스캔 탐지 | JSON |
 | snare | 커스텀 빌드 | SQLi, XSS, LFI, 디렉터리 트래버설 | Text/JSON |
 | tanner | 커스텀 스텁 | SNARE 분석 서버 (로컬) | — |
-| dionaea | `dinotools/dionaea:latest` | SMB 익스플로잇, FTP, MSSQL 멀웨어 | SQLite |
+| dionaea | `dinotools/dionaea:latest` | SMB 익스플로잇, FTP, MSSQL 연결 | Text (dionaea.log) |
 | mailoney | 커스텀 구현 | SMTP 스팸, AUTH 브루트포스 | JSON |
 | conpot | 커스텀 구현 | ICS/SCADA Modbus, S7comm, SNMP | JSON |
 | kali-attacker | `debian:bookworm-slim` | — | — |
@@ -79,7 +79,8 @@ docker compose ps
 
 ### 전술 라이브러리 기반 랜덤화 시스템
 
-각 시나리오는 실행할 때마다 전술 풀에서 무작위로 전술을 선택하고, 유저명·패스워드·페이로드·강도·타겟을 랜덤화한다. 동일한 시나리오를 반복해도 매번 다른 공격 패턴이 생성된다.
+각 시나리오는 실행할 때마다 전술 풀에서 무작위로 전술을 선택하고, 유저명·패스워드·페이로드·강도·타겟을 랜덤화한다.  
+동일한 시나리오를 반복해도 매번 다른 공격 패턴이 생성된다.
 
 ```
 attack_scenarios/
@@ -115,12 +116,12 @@ attack_scenarios/
 | 01 | `01_normal_traffic.sh` | Etc | 8종 중 4~7 선택 | heralding, snare, cowrie, conpot |
 | 02 | `02_port_scan.sh` | Recon | 12종 중 4~7 선택 | opencanary, 전체 네트워크 |
 | 03 | `03_brute_force.sh` | Brute Force | 11종 중 4~7 선택 | cowrie, heralding, mailoney |
-| 04 | `04_web_attacks.sh` | Intrusion | 8종 중 4~6 선택 | snare(SQLi·XSS·LFI·RFI·CMD) |
-| 05 | `05_post_intrusion.sh` | Intrusion | 명령어 랜덤 조합 | cowrie(시스템 정찰·권한상승) |
-| 06 | `06_reverse_shell.sh` | Intrusion | 7종 기법 랜덤 | cowrie(nc·python·perl·php·ruby) |
-| 07 | `07_malware_upload.sh` | Malware | 8종 중 4~6 선택 | cowrie(wget·curl·C2), dionaea(FTP) |
+| 04 | `04_web_attacks.sh` | Intrusion | 8종 중 4~6 선택 | snare (SQLi·XSS·LFI·RFI·CMD) |
+| 05 | `05_post_intrusion.sh` | Intrusion | 명령어 랜덤 조합 | cowrie (시스템 정찰·권한상승) |
+| 06 | `06_reverse_shell.sh` | Intrusion | 7종 기법 랜덤 | cowrie (nc·python·perl·php·ruby) |
+| 07 | `07_malware_upload.sh` | Malware | 8종 중 4~6 선택 | cowrie (wget·curl·C2), dionaea (FTP) |
 | 08 | `08_credential_stuffing.sh` | Brute Force | 10종 중 5~8 선택 | opencanary·dionaea·cowrie·heralding |
-| 09 | `09_ics_attack.sh` | Recon | 8종 중 4~6 선택 | conpot(Modbus·SNMP·S7·BACnet·DNP3) |
+| 09 | `09_ics_attack.sh` | Recon | 8종 중 4~6 선택 | conpot (Modbus·SNMP·S7·BACnet·DNP3) |
 
 ### 실행
 
@@ -139,21 +140,20 @@ docker exec -it kali-attacker bash /scripts/run_loop.sh 40 5
 ## 데이터셋 생성
 
 ```bash
-# 로그 파싱 + 레이블링 (반드시 docker exec 방식으로 실행)
-docker exec kali-attacker bash -c \
-  "python3 /scripts/parse_logs.py && python3 /scripts/label_data.py"
+# 로그 파싱 → dataset.csv 생성
+docker exec kali-attacker python3 /scripts/parse_logs.py
 ```
 
 ### 출력 파일: `dataset.csv` (단일 통합 파일, 15컬럼)
 
-레이블 없는 순수 피처 데이터셋. 레이블링은 별도로 `label_data.py`를 선택적으로 실행한다.
+레이블 없는 순수 피처 데이터셋.
 
-| 컬럼 | 설명 | 유효 event_type |
+| 컬럼 | 설명 | 주요 event_type |
 |------|------|----------------|
 | `timestamp` | ISO 8601 UTC | 전체 |
 | `src_ip` | 공격자 IP | 전체 |
-| `dst_port` | 대상 포트 | 전체 |
-| `protocol` | SSH / HTTP / FTP / SMTP / MySQL / RDP / PORTSCAN 등 | 전체 |
+| `dst_port` | 대상 포트 (정수) | 전체 |
+| `protocol` | SSH / HTTP / FTP / SMTP / MYSQL / RDP / MODBUS / S7COMM / SMB / MSSQL / PORTSCAN 등 (대문자 정규화) | 전체 |
 | `source_honeypot` | cowrie / heralding / opencanary / snare / dionaea / mailoney / conpot | 전체 |
 | `event_type` | **auth / session / command / scan** | 전체 |
 | `username` | 인증 시도 사용자명 | auth |
@@ -161,26 +161,36 @@ docker exec kali-attacker bash -c \
 | `login_success` | 0 / 1 | auth |
 | `duration` | 세션 길이 (초) | session |
 | `login_attempts` | 세션 내 로그인 시도 수 | session |
-| `command` | 실행 명령어 또는 HTTP 경로 | command |
+| `command` | 실행 명령어 또는 HTTP 요청 경로 | command |
 | `has_wget` | 0 / 1 | command |
 | `has_curl` | 0 / 1 | command |
 | `has_reverse_shell` | 0 / 1 | command |
+
+### 허니팟별 event_type 매핑
+
+| 허니팟 | event_type |
+|--------|-----------|
+| cowrie | auth, session, command |
+| heralding | auth, session |
+| opencanary | scan |
+| snare | command |
+| dionaea | session |
+| mailoney | auth |
+| conpot | session |
 
 ---
 
 ## 레이블링 (선택)
 
-`dataset.csv`는 레이블 없는 순수 피처 파일이다. 필요 시 아래 명령어로 레이블을 추가할 수 있다.
+`dataset.csv`는 레이블 없는 순수 피처 파일이다. 필요 시 아래 명령어로 `label` 컬럼을 추가할 수 있다.
 
 ```bash
 docker exec kali-attacker python3 /scripts/label_data.py
 ```
 
-`label_data.py`는 `dataset.csv`에 `label` 컬럼을 추가하여 덮어쓴다.
-
 **레이블링 전략:**
 
-1. **타임스탬프 기반**: 각 시나리오의 시작~종료 시각(`scenario_times.json`)에 로그 타임스탬프를 매칭
+1. **타임스탬프 기반**: `scenario_times.json`의 시나리오 시작·종료 시각에 로그 타임스탬프 매칭
 2. **Rule-based 보완** (타임스탬프 매칭 실패 시):
 
 | 조건 | 레이블 |
@@ -193,7 +203,7 @@ docker exec kali-attacker python3 /scripts/label_data.py
 | `login_attempts >= 10` | Brute Force |
 | 매칭 없음 | Etc |
 
-**ML 클래스:** Etc / Recon / Brute Force / Intrusion / Malware
+**ML 클래스:** `Etc` / `Recon` / `Brute Force` / `Intrusion` / `Malware`
 
 ---
 
@@ -226,21 +236,29 @@ Docker-honeypot/
     ├── run_scenarios.sh  ← 9종 시나리오 1회 실행
     ├── run_loop.sh       ← N회 반복 실행 (대용량 수집)
     ├── parse_logs.py     ← 7종 허니팟 로그 → dataset.csv
-    └── label_data.py     ← 타임스탬프 + rule-based 레이블링
+    └── label_data.py     ← 타임스탬프 + rule-based 레이블링 (선택)
 ```
 
-로그 출력 경로 (repo 외부):
+**로그 출력 경로 (repo 외부):**
+
 ```
-/mnt/d/honeypot_logs/
+D:\honeypot_logs\           ← Windows 호스트 (Docker mount: D:/honeypot_logs)
 ├── cowrie/     cowrie.json*
-├── heralding/  auth.csv, session.csv
 ├── opencanary/ opencanary.log*
 ├── snare/      snare.log
-├── dionaea/    logsql.sqlite
+├── dionaea/    dionaea.log
 ├── mailoney/   *.json
 ├── conpot/     *.json
-└── dataset.csv     ← 최종 통합 데이터셋
+└── dataset.csv             ← 최종 통합 데이터셋
+
+heralding_logs              ← Docker named volume (WSL2 bind mount 안정화용)
+├── auth.csv
+└── session.csv
 ```
+
+> **WSL2 주의:** 컨테이너 재생성 시 `D:/honeypot_logs` 볼륨 마운트가 끊길 수 있다.  
+> PowerShell에서 `wsl --shutdown` 후 `docker compose up -d` 로 복구한다.  
+> kali-attacker는 `D:/honeypot_logs` 경로를 직접 사용한다 (WSL `/mnt/d/...` 형식 불가).
 
 ---
 

@@ -34,6 +34,7 @@ from datetime import datetime
 from pathlib import Path
 
 LOG_BASE = Path("/honeypot_logs")
+HERALDING_LOG_BASE = Path("/heralding_logs")  # named volume (bind mount 충돌 방지)
 OUT_BASE = LOG_BASE
 
 DATASET_FIELDS = [
@@ -61,7 +62,7 @@ def make_row(
         "timestamp": timestamp,
         "src_ip": src_ip,
         "dst_port": dst_port,
-        "protocol": protocol,
+        "protocol": protocol.upper() if protocol else "",
         "source_honeypot": source_honeypot,
         "event_type": event_type,
         "username": username,
@@ -164,7 +165,7 @@ def parse_cowrie():
 def parse_heralding():
     rows = []
 
-    auth_file = LOG_BASE / "heralding" / "auth.csv"
+    auth_file = HERALDING_LOG_BASE / "auth.csv"
     if auth_file.exists():
         print(f"[heralding] {auth_file}")
         with open(auth_file, encoding="utf-8", errors="replace") as f:
@@ -180,7 +181,7 @@ def parse_heralding():
                     login_success=0,
                 ))
 
-    session_file = LOG_BASE / "heralding" / "session.csv"
+    session_file = HERALDING_LOG_BASE / "session.csv"
     if session_file.exists():
         print(f"[heralding] {session_file}")
         with open(session_file, encoding="utf-8", errors="replace") as f:
@@ -205,11 +206,12 @@ def parse_opencanary():
     LOGTYPE_MAP = {
         1001: "PORTSCAN",
         2000: "FTP",
-        6001: "RDP",
-        5001: "VNC",
         3001: "HTTP",
         4001: "TELNET",
+        5001: "VNC",
+        6001: "RDP",
         9001: "SNMP",
+        14001: "RDP",
     }
     rows = []
 
@@ -294,12 +296,53 @@ def parse_snare():
 
 # ── Dionaea ───────────────────────────────────────────────────────────────────
 
+# Port → protocol for dionaea text log
+_DIONAEA_PORT_PROTO = {
+    "21":   "FTP",
+    "445":  "SMB",
+    "1433": "MSSQL",
+    "1723": "PPTP",
+    "3306": "MySQL",
+    "80":   "HTTP",
+    "8080": "HTTP",
+}
+
 def parse_dionaea():
     rows = []
-    db_path = LOG_BASE / "dionaea" / "logsql.sqlite"
 
+    # ── Try text log first (dionaea writes text, not SQLite, in this setup) ──
+    text_log = LOG_BASE / "dionaea" / "dionaea.log"
+    if text_log.exists():
+        print(f"[dionaea] {text_log}")
+        # Line format:
+        # [DDMMYYYY HH:MM:SS] log_sqlite ...info: accepted connection from R_IP:R_PORT to L_IP:L_PORT (id=N)
+        accept_pat = re.compile(
+            r'\[(\d{8} \d{2}:\d{2}:\d{2})\].*?accepted connection from '
+            r'(\d+\.\d+\.\d+\.\d+):(\d+) to '
+            r'(\d+\.\d+\.\d+\.\d+):(\d+)'
+        )
+        with open(text_log, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = accept_pat.search(line)
+                if not m:
+                    continue
+                date_str, src_ip, _src_port, _dst_ip, dst_port = m.groups()
+                try:
+                    ts = datetime.strptime(date_str, "%d%m%Y %H:%M:%S").isoformat()
+                except ValueError:
+                    ts = date_str
+                proto = _DIONAEA_PORT_PROTO.get(dst_port, "UNKNOWN")
+                rows.append(make_row(
+                    timestamp=ts, src_ip=src_ip, dst_port=dst_port,
+                    protocol=proto, source_honeypot="dionaea", event_type="session",
+                ))
+        print(f"[dionaea] {len(rows)}행 (text log)")
+        return rows
+
+    # ── Fallback: SQLite DB ────────────────────────────────────────────────────
+    db_path = LOG_BASE / "dionaea" / "logsql.sqlite"
     if not db_path.exists():
-        print(f"[dionaea] DB 없음, 건너뜀")
+        print("[dionaea] 로그 없음, 건너뜀")
         return rows
 
     print(f"[dionaea] {db_path}")

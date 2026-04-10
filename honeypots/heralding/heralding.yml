@@ -1,5 +1,25 @@
 bind_host: ''
 
+activity_logging:
+  file:
+    enabled: true
+    session_csv_log_file: "/var/log/heralding/session.csv"
+    session_json_log_file: ""
+    authentication_log_file: "/var/log/heralding/auth.csv"
+  syslog:
+    enabled: false
+  hpfeeds:
+    enabled: false
+    session_channel: "heralding.session"
+    auth_channel: "heralding.auth"
+    host:
+    port: 20000
+    ident:
+    secret:
+
+hash_cracker:
+  enabled: false
+
 capabilities:
   ftp:
     enabled: false
@@ -7,6 +27,8 @@ capabilities:
   http:
     enabled: true
     port: 80
+    protocol_specific_data:
+      banner: ""
   https:
     enabled: false
     port: 443
@@ -43,13 +65,3 @@ capabilities:
   postgresql:
     enabled: false
     port: 5432
-
-hash_cracker:
-  enabled: false
-
-options:
-  session_timeout: 30
-  log_path: /var/log/heralding
-  database_file: /var/log/heralding/heralding.db
-  auth_log_file: /var/log/heralding/auth.csv
-  session_log_file: /var/log/heralding/session.csv

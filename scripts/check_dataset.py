@@ -1,0 +1,17 @@
+import pandas as pd
+
+df = pd.read_csv('/honeypot_logs/dataset.csv')
+print(f'총 행: {len(df)}')
+print(f'컬럼: {list(df.columns)}')
+print()
+print('source_honeypot:')
+print(df['source_honeypot'].value_counts().to_string())
+print()
+print('event_type:')
+print(df['event_type'].value_counts().to_string())
+print()
+print('protocol:')
+print(df['protocol'].value_counts().to_string())
+print()
+print('결측값:')
+print(df.isnull().sum().to_string())

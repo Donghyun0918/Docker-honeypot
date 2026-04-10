@@ -5,6 +5,9 @@ networks:
       config:
         - subnet: ${SUBNET}
 
+volumes:
+  heralding_logs:
+
 services:
 
   # ── Cowrie: SSH/Telnet 허니팟 ─────────────────────────────────────────────
@@ -40,7 +43,7 @@ services:
       - "8880:80"
       - "33306:3306"
     volumes:
-      - "/mnt/d/honeypot_logs/heralding:/var/log/heralding"
+      - "heralding_logs:/var/log/heralding"
     restart: unless-stopped
 
   # ── OpenCanary: 포트스캔/RDP/VNC 탐지 ────────────────────────────────────
@@ -154,7 +157,8 @@ services:
     volumes:
       - "./attack_scenarios:/attack_scenarios"
       - "./scripts:/scripts"
-      - "/mnt/d/honeypot_logs:/honeypot_logs"
+      - "D:/honeypot_logs:/honeypot_logs"
+      - "heralding_logs:/heralding_logs"
     stdin_open: true
     tty: true
     cap_add:
