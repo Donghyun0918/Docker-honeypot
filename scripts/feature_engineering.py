@@ -89,12 +89,12 @@ OUT_FIELDS = [
 
 # ── 이진 타겟 (label_data.py rule-based와 동일한 기준) ────────────────────────
 def calc_is_attack(row: dict) -> int:
-    if int(row.get("has_reverse_shell") or 0):
+    if int(row.get("derived_has_reverse_shell") or 0):
         return 1
     et    = row.get("event_type", "")
     proto = row.get("protocol", "")
     hp    = row.get("source_honeypot", "")
-    if et == "command" and (int(row.get("has_wget") or 0) or int(row.get("has_curl") or 0)):
+    if et == "command" and (int(row.get("derived_has_wget") or 0) or int(row.get("derived_has_curl") or 0)):
         return 1
     if et == "scan" or proto == "PORTSCAN":
         return 1
@@ -165,9 +165,9 @@ def main():
         login_success  = int(row.get("login_success") or 0)
         login_attempts = int(row.get("login_attempts") or 0)
         duration       = float(row.get("duration") or 0.0)
-        has_wget       = int(row.get("has_wget") or 0)
-        has_curl       = int(row.get("has_curl") or 0)
-        has_revshell   = int(row.get("has_reverse_shell") or 0)
+        has_wget       = int(row.get("derived_has_wget") or 0)
+        has_curl       = int(row.get("derived_has_curl") or 0)
+        has_revshell   = int(row.get("derived_has_reverse_shell") or 0)
 
         out_rows.append({
             "hour":             hour,
