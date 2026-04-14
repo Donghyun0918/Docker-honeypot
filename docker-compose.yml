@@ -69,6 +69,7 @@ services:
     build:
       context: ./honeypots/heralding
       dockerfile: Dockerfile
+    image: honeypot-heralding
     container_name: heralding
     hostname: heralding
     networks:
@@ -86,6 +87,7 @@ services:
     build:
       context: ./honeypots/opencanary
       dockerfile: Dockerfile
+    image: honeypot-opencanary
     container_name: opencanary
     hostname: opencanary
     networks:
@@ -104,6 +106,7 @@ services:
     build:
       context: ./honeypots/tanner
       dockerfile: Dockerfile
+    image: honeypot-tanner
     container_name: tanner
     hostname: tanner
     networks:
@@ -116,6 +119,7 @@ services:
     build:
       context: ./honeypots/snare
       dockerfile: Dockerfile
+    image: honeypot-snare
     container_name: snare
     hostname: snare
     networks:
@@ -150,6 +154,7 @@ services:
     build:
       context: ./honeypots/mailoney
       dockerfile: Dockerfile
+    image: honeypot-mailoney
     container_name: mailoney
     hostname: mailoney
     networks:
@@ -166,6 +171,7 @@ services:
     build:
       context: ./honeypots/conpot
       dockerfile: Dockerfile
+    image: honeypot-conpot
     container_name: conpot
     hostname: conpot
     networks:

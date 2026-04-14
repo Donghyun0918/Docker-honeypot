@@ -57,6 +57,8 @@ honeypot-net (172.30.0.0/24)
 
 ## 빠른 시작
 
+> **WSL2 환경 기준** (Windows + Docker Desktop 권장 실행 방식)
+
 ```bash
 # 1. 저장소 클론
 git clone https://github.com/Donghyun0918/HoneyForge.git
@@ -64,12 +66,22 @@ cd HoneyForge
 
 # 2. 환경 변수 설정
 cp .env.example .env
-# .env 열어서 아래 두 경로를 본인 환경에 맞게 수정
-#   PROJECT_HOST=D:/HoneyForge         ← 클론한 경로 (Windows는 D:/ 형식)
-#   HONEYPOT_LOGS_HOST=D:/honeypot_logs ← 로그 저장 경로
-#   SECRET_KEY=...                      ← 반드시 변경
+nano .env
+```
 
-# 3. 로그 디렉터리 생성
+`.env` 에서 수정할 항목:
+
+| 변수 | 예시 | 설명 |
+|------|------|------|
+| `PROJECT_HOST` | `/mnt/d/HoneyForge` | 클론한 경로 **(WSL 형식)** |
+| `HONEYPOT_LOGS_HOST` | `/mnt/d/honeypot_logs` | 로그 저장 경로 **(WSL 형식)** |
+| `SECRET_KEY` | 임의의 긴 문자열 | JWT 서명 키 — 반드시 변경 |
+
+> 경로는 반드시 `/mnt/d/...` 형식을 사용하세요.  
+> `D:/...` 형식은 WSL에서 Docker 볼륨 오류가 발생합니다.
+
+```bash
+# 3. 로그 디렉터리 생성 (setup.sh가 자동 변환·생성)
 bash setup.sh
 
 # 4. 전체 빌드 및 실행 (허니팟 8종 + 대시보드)
@@ -83,6 +95,17 @@ docker compose ps
 |--------|------|
 | 대시보드 (프론트엔드) | http://localhost:3000 |
 | API 서버 (백엔드) | http://localhost:8000 |
+
+### 관리자 계정 설정
+
+회원가입 후 아래 명령으로 관리자 권한을 부여합니다.
+
+```bash
+docker exec honeyforge-backend sqlite3 /app/data/dashboard.db \
+  "UPDATE users SET is_admin=1 WHERE username='계정명';"
+```
+
+이후 재로그인하면 관리자 대시보드로 이동됩니다.
 
 ---
 
