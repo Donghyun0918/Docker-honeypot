@@ -6,10 +6,17 @@ import docker
 import logging
 from typing import Optional
 
+import os
+
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = "/mnt/d/docker_honeypot"
-LOGS_ROOT = "/mnt/d/honeypot_logs"
+# 컨테이너 내부 경로 (백엔드 컨테이너가 마운트해서 보는 경로)
+PROJECT_ROOT = os.getenv("PROJECT_ROOT", "/project")
+LOGS_ROOT    = os.getenv("LOGS_ROOT",    "/honeypot_logs")
+
+# 도커 호스트 실제 경로 (새 컨테이너 생성 시 볼륨 바인드에 사용)
+PROJECT_HOST_PATH = os.getenv("PROJECT_HOST_PATH", PROJECT_ROOT)
+LOGS_HOST_PATH    = os.getenv("LOGS_HOST_PATH",    LOGS_ROOT)
 
 # docker compose build 결과 이미지명 (프로젝트명: docker_honeypot)
 HONEYPOT_IMAGES = {
@@ -38,8 +45,9 @@ def network_name(username: str) -> str:
 
 def _honeypot_run_kwargs(username: str, honeypot: str) -> dict:
     """허니팟 종류별 컨테이너 실행 옵션 반환."""
-    log_dir = f"{LOGS_ROOT}/{username}/{honeypot}"
-    cfg = PROJECT_ROOT
+    # 새 컨테이너 볼륨 바인드는 반드시 호스트 경로 사용
+    log_dir = f"{LOGS_HOST_PATH}/{username}/{honeypot}"
+    cfg = PROJECT_HOST_PATH
 
     base = {
         "detach": True,
@@ -116,7 +124,7 @@ def create_user_honeypots(username: str) -> dict:
     client = get_client()
     results = {}
 
-    # 로그 디렉토리 생성
+    # 로그 디렉토리 생성 (컨테이너 내부 마운트 경로 기준)
     for hp in HONEYPOT_IMAGES:
         os.makedirs(f"{LOGS_ROOT}/{username}/{hp}", exist_ok=True)
 

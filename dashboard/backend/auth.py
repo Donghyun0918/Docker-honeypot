@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db, User
 
-SECRET_KEY = "honeypot-dashboard-secret-key-change-in-prod"
+import os
+SECRET_KEY = os.getenv("SECRET_KEY", "honeypot-dashboard-secret-key-change-in-prod")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

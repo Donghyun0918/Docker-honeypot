@@ -10,6 +10,9 @@ import logging
 import os
 import io
 
+# 데이터셋 파일 접근 경로 (컨테이너 내부 마운트 경로)
+LOGS_HOST_ROOT = os.getenv("LOGS_ROOT", "/honeypot_logs")
+
 from database import init_db, get_db, User
 from auth import hash_password, verify_password, create_access_token, get_current_user
 import docker_ops
@@ -476,7 +479,7 @@ async def stream_logs(websocket: WebSocket, container_name: str, token: str = ""
 
 # ── 데이터셋 생성 / 다운로드 ───────────────────────────────────────────────────
 
-LOGS_HOST_ROOT = "/mnt/d/honeypot_logs"  # 백엔드(Linux/WSL)에서 접근하는 호스트 경로
+# LOGS_HOST_ROOT는 파일 상단 os.getenv("LOGS_ROOT") 에서 정의
 
 
 def _user_dataset_path(username: str, filename: str) -> str:

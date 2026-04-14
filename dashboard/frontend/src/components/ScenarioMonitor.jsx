@@ -25,7 +25,9 @@ export default function ScenarioMonitor({ username, scenario, onClose }) {
       const name = `hp_${username}_${hp}`
       if (wsRefs.current[name]) wsRefs.current[name].close()
 
-      const ws = new WebSocket(`ws://localhost:8000/ws/logs/${name}?token=${token}`)
+      const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsHost  = window.location.host
+      const ws = new WebSocket(`${wsProto}//${wsHost}/ws/logs/${name}?token=${token}`)
 
       ws.onmessage = () => {
         setActivity(prev => ({

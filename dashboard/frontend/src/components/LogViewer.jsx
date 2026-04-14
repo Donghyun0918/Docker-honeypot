@@ -13,7 +13,9 @@ export default function LogViewer({ containerName, onClose }) {
     }
 
     const token = localStorage.getItem('token')
-    const ws = new WebSocket(`ws://localhost:8000/ws/logs/${containerName}?token=${token}`)
+    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsHost  = window.location.host
+    const ws = new WebSocket(`${wsProto}//${wsHost}/ws/logs/${containerName}?token=${token}`)
     wsRef.current = ws
 
     ws.onopen = () => setConnected(true)

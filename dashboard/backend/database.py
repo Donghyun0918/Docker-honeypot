@@ -3,8 +3,12 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, create_engine
 from datetime import datetime
 
-DATABASE_URL      = "sqlite+aiosqlite:///./dashboard.db"
-DATABASE_URL_SYNC = "sqlite:///./dashboard.db"
+import os as _os
+_DB_DIR = _os.getenv("DB_DIR", ".")
+_os.makedirs(_DB_DIR, exist_ok=True)
+
+DATABASE_URL      = f"sqlite+aiosqlite:///{_DB_DIR}/dashboard.db"
+DATABASE_URL_SYNC = f"sqlite:///{_DB_DIR}/dashboard.db"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
