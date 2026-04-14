@@ -1,0 +1,656 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f1117;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+a { color: #60a5fa; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── 인증 페이지 ───────────────────────────────── */
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 24px;
+}
+
+.auth-container h1 { font-size: 1.8rem; color: #fbbf24; }
+
+.auth-form {
+  background: #1e2130;
+  border: 1px solid #2d3148;
+  border-radius: 12px;
+  padding: 32px;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-form h2 { font-size: 1.2rem; margin-bottom: 4px; }
+
+.auth-form input {
+  background: #0f1117;
+  border: 1px solid #2d3148;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.auth-form input:focus { border-color: #60a5fa; }
+
+.auth-form button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.auth-form button:hover:not(:disabled) { background: #1d4ed8; }
+.auth-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-form p { font-size: 0.85rem; color: #94a3b8; text-align: center; }
+
+.error { color: #f87171; font-size: 0.875rem; }
+
+/* ── 대시보드 ──────────────────────────────────── */
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: #1e2130;
+  border-bottom: 1px solid #2d3148;
+}
+
+.dash-header h1 { font-size: 1.3rem; color: #fbbf24; }
+
+.header-right { display: flex; align-items: center; gap: 14px; font-size: 0.9rem; color: #94a3b8; }
+
+.dash-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  background: #1e2130;
+  border: 1px solid #2d3148;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.card-header h2 { font-size: 1rem; }
+
+.btn-group { display: flex; gap: 8px; }
+
+/* ── 버튼 공통 ─────────────────────────────────── */
+button { cursor: pointer; border-radius: 7px; font-size: 0.875rem; padding: 7px 14px; transition: opacity 0.2s; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-outline { background: transparent; border: 1px solid #4b5563; color: #e2e8f0; }
+.btn-outline:hover:not(:disabled) { border-color: #9ca3af; }
+
+.btn-green { background: #16a34a; border: none; color: #fff; }
+.btn-green:hover:not(:disabled) { opacity: 0.85; }
+
+.btn-red { background: #dc2626; border: none; color: #fff; }
+.btn-red:hover:not(:disabled) { opacity: 0.85; }
+
+.btn-red-sm { background: #dc2626; border: none; color: #fff; padding: 4px 10px; font-size: 0.8rem; }
+.btn-green-sm { background: #16a34a; border: none; color: #fff; padding: 4px 10px; font-size: 0.8rem; }
+
+/* ── 관리자 배지 ───────────────────────────────── */
+.header-left { display: flex; align-items: center; gap: 10px; }
+
+.admin-badge {
+  background: #7c3aed;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.badge-admin {
+  background: #7c3aed22;
+  color: #a78bfa;
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.badge-user {
+  background: #1e40af22;
+  color: #93c5fd;
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ── 요약 카드 ─────────────────────────────────── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.summary-card {
+  background: #1e2130;
+  border: 1px solid #2d3148;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.summary-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; }
+.summary-value { font-size: 1.8rem; font-weight: 700; }
+
+/* ── 컨테이너 힌트 ─────────────────────────────── */
+.container-hint { font-size: 0.7rem; color: #4b5563; margin-top: 4px; }
+
+/* ── 내 정보 그리드 ────────────────────────────── */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.info-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label { font-size: 0.78rem; color: #94a3b8; }
+
+/* ── 유저별 컨테이너 그룹 ───────────────────────── */
+.user-containers-list { display: flex; flex-direction: column; gap: 20px; margin-top: 16px; }
+
+.user-container-group {
+  border: 1px solid #2d3148;
+  border-radius: 10px;
+  padding: 16px;
+  background: #0f1117;
+}
+
+.ucg-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ucg-username { font-weight: 600; font-size: 0.95rem; }
+.ucg-count { font-size: 0.82rem; }
+
+.container-grid-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.container-card-sm {
+  background: #1e2130;
+  border: 1px solid #2d3148;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.container-card-sm:hover { border-color: #60a5fa; }
+
+/* ── 컨테이너 개별 제어 버튼 ────────────────────── */
+.container-actions { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+
+.btn-action { padding: 3px 8px; font-size: 0.72rem; border: none; border-radius: 5px; cursor: pointer; }
+.btn-action:hover { opacity: 0.8; }
+
+.btn-yellow  { background: #d97706; color: #fff; }
+.btn-red-xs  { background: #dc2626; color: #fff; }
+.btn-green-xs{ background: #16a34a; color: #fff; }
+.btn-gray    { background: #374151; color: #e2e8f0; }
+
+/* ── 공격 시나리오 ─────────────────────────────── */
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.scenario-card {
+  background: #0f1117;
+  border: 1px solid #2d3148;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scenario-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.scenario-id { font-size: 0.72rem; background: #1e2130; padding: 1px 6px; border-radius: 4px; color: #94a3b8; font-family: monospace; }
+.scenario-name { font-weight: 600; font-size: 0.88rem; }
+.scenario-label { font-size: 0.72rem; background: #1e40af33; color: #93c5fd; padding: 1px 7px; border-radius: 999px; margin-left: auto; }
+.scenario-state { font-size: 0.82rem; }
+.scenario-time { font-size: 0.72rem; color: #6b7280; }
+.scenario-actions { display: flex; gap: 6px; margin-top: 4px; }
+
+/* ── 실시간 로그 뷰어 ──────────────────────────── */
+.logviewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.logviewer-panel {
+  background: #0f1117;
+  border: 1px solid #2d3148;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.logviewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #2d3148;
+  flex-shrink: 0;
+}
+
+.logviewer-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.ws-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ws-connected    { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+.ws-disconnected { background: #ef4444; }
+
+.ws-status {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #1e2130;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.logviewer-actions { display: flex; align-items: center; gap: 8px; }
+
+.autoscroll-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.logviewer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px;
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: #86efac;
+}
+
+.logviewer-empty { color: #4b5563; text-align: center; margin-top: 20px; }
+
+.log-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+  border-bottom: 1px solid #ffffff08;
+  padding: 1px 0;
+}
+
+/* ── 시나리오 모니터 ────────────────────────────── */
+.monitor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.monitor-panel {
+  background: #0f1117;
+  border: 1px solid #2d3148;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 720px;
+  padding: 24px;
+}
+
+.monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.monitor-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.monitor-scenario-badge {
+  background: #1e2130;
+  border: 1px solid #2d3148;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.scenario-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.scenario-state-dot.running { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.scenario-state-dot.done    { background: #22c55e; }
+.scenario-state-dot.failed  { background: #ef4444; }
+.scenario-state-dot.idle    { background: #6b7280; }
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.monitor-card {
+  background: #1e2130;
+  border: 1px solid #2d3148;
+  border-radius: 10px;
+  padding: 14px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.1s;
+  position: relative;
+}
+
+.monitor-card:hover { transform: translateY(-2px); }
+
+.monitor-active {
+  box-shadow: 0 0 12px var(--hp-color, #60a5fa44);
+}
+
+.monitor-hp-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #e2e8f0;
+}
+
+.monitor-indicator {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin: 0 auto 8px;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.monitor-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: pulse-ring 1s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.4; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.monitor-count {
+  font-size: 0.72rem;
+  transition: color 0.3s;
+}
+
+.monitor-hint {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #4b5563;
+  margin-top: 14px;
+}
+
+/* ── 통계 차트 ─────────────────────────────────── */
+.stats-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stats-summary {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.stats-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-k {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stats-v {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+.stat-section {
+  background: #1a1e2e;
+  border: 1px solid #2d3148;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.stat-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── 히스토리 테이블 ────────────────────────────── */
+.history-table-wrap {
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.history-table th {
+  text-align: left;
+  padding: 8px 12px;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #2d3148;
+}
+
+.history-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #1a1e2e;
+  color: #e2e8f0;
+}
+
+.history-table tbody tr:hover {
+  background: #1e2130;
+}
+
+.history-label {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* ── 데이터셋 섹션 ─────────────────────────────── */
+.dataset-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.dataset-info {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  background: #1e2130;
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+.dataset-empty {
+  font-size: 0.82rem;
+  color: #4b5563;
+  padding: 8px 0;
+}
+
+.dataset-error {
+  font-size: 0.82rem;
+  color: #ef4444;
+  padding: 6px 0;
+}
+
+/* ── 컨테이너 그리드 ───────────────────────────── */
+.container-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.container-card {
+  background: #0f1117;
+  border: 1px solid #2d3148;
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.container-card:hover { border-color: #60a5fa; }
+
+.container-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; }
+.container-status { font-size: 0.85rem; }
+.container-id { font-size: 0.75rem; color: #4b5563; margin-top: 6px; font-family: monospace; }
+
+/* ── 로그 뷰어 ─────────────────────────────────── */
+.log-viewer {
+  background: #0f1117;
+  border: 1px solid #2d3148;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 0.78rem;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #86efac;
+}
+
+/* ── 유저 테이블 ───────────────────────────────── */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.user-table th, .user-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #2d3148;
+}
+
+.user-table th { color: #94a3b8; font-weight: 500; }
+.user-table tr:last-child td { border-bottom: none; }

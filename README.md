@@ -1,7 +1,10 @@
 # Docker Honeypot Lab
 
-Docker 기반 허니팟 7종과 Kali Linux 공격자 컨테이너로 구성된 폐쇄형 사이버 공격 시뮬레이션 랩.  
+Docker 기반 허니팟 8종과 Kali Linux 공격자 컨테이너로 구성된 폐쇄형 사이버 공격 시뮬레이션 랩.  
 9가지 공격 시나리오를 자동 실행하고, 수집된 로그를 ML 학습용 단일 CSV 데이터셋으로 변환한다.
+
+웹 대시보드(FastAPI + React)를 통해 **유저별 독립 허니팟 환경**을 관리하고,  
+실시간 로그 스트리밍·공격 시나리오 실행·데이터셋 생성·통계 차트를 브라우저에서 확인할 수 있다.
 
 > **주의:** 이 프로젝트는 교육·연구 목적의 격리된 로컬 환경 전용입니다.  
 > 외부 네트워크에 절대 노출하지 마세요.
@@ -278,12 +281,68 @@ docker exec kali-attacker python3 /scripts/label_data.py
 
 ---
 
+## 웹 대시보드
+
+### 구조
+
+```
+dashboard/
+├── backend/    FastAPI + SQLite (uvicorn)
+└── frontend/   React + Vite + Recharts
+```
+
+### 실행
+
+```bash
+# 백엔드 (WSL2 / Linux)
+cd dashboard/backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+# 프론트엔드
+cd dashboard/frontend
+npm install && npm run dev
+```
+
+### 기능
+
+| 기능 | 일반 유저 | 관리자 |
+|------|-----------|--------|
+| 내 계정 정보 | ✅ | — |
+| 내 허니팟 컨테이너 상태 | ✅ | ✅ (전체 유저) |
+| 컨테이너 개별 제어 (시작/정지/재시작) | — | ✅ |
+| 공격 시나리오 실행 | ✅ | — |
+| ScenarioMonitor (허니팟별 활성 시각화) | ✅ | — |
+| 실시간 로그 스트리밍 (WebSocket) | ✅ | ✅ |
+| 시나리오 실행 이력 | ✅ | ✅ (전체) |
+| 데이터셋 생성 / CSV 다운로드 | ✅ | — |
+| 통계 차트 (허니팟·프로토콜·이벤트·시간대) | ✅ | — |
+| 유저별 데이터셋 현황 | — | ✅ |
+| 유저 관리 (활성화/비활성화) | — | ✅ |
+
+### API 엔드포인트
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| POST | `/api/auth/register` | 회원가입 (허니팟 컨테이너 자동 생성) |
+| POST | `/api/auth/login` | 로그인 (JWT) |
+| GET | `/api/containers` | 내 컨테이너 상태 |
+| POST | `/api/scenarios/{id}/run` | 시나리오 실행 |
+| GET | `/api/history` | 내 시나리오 실행 이력 |
+| POST | `/api/dataset/generate` | 데이터셋 생성 |
+| GET | `/api/dataset/download` | CSV 다운로드 |
+| GET | `/api/stats` | 통계 데이터 |
+| WS | `/ws/logs/{container}` | 실시간 로그 스트리밍 |
+| GET | `/api/admin/*` | 관리자 전용 엔드포인트 |
+
+---
+
 ## 디렉터리 구조
 
 ```
 Docker-honeypot/
 ├── docker-compose.yml
-├── .env.example
 ├── setup.sh
 │
 ├── honeypots/
@@ -303,16 +362,25 @@ Docker-honeypot/
 │   ├── lib/              ← 전술 라이브러리 (6개 파일)
 │   └── 01~09_*.sh        ← 랜덤화 시나리오 스크립트
 │
-└── scripts/
-    ├── run_scenarios.sh  ← 9종 시나리오 1회 실행
-    ├── run_loop.sh       ← N회 반복 실행 (대용량 수집)
-    ├── pipeline.sh            ← 전체 파이프라인 단일 진입점 (수집→파싱→검증→ML)
-    ├── run_scenarios.sh       ← 9종 시나리오 1회 실행
-    ├── run_loop.sh            ← N회 반복 실행 (대용량 수집)
-    ├── parse_logs.py          ← 7종 허니팟 로그 → dataset.csv (v4.0, 29컬럼)
-    ├── validate.py            ← 데이터 품질 검증 게이트
-    ├── feature_engineering.py ← dataset.csv → dataset_ml.csv (ML 전처리)
-    └── label_data.py          ← 타임스탬프 + rule-based 레이블링 (선택)
+├── scripts/
+│   ├── pipeline.sh            ← 전체 파이프라인 (수집→파싱→검증→ML)
+│   ├── run_scenarios.sh       ← 9종 시나리오 1회 실행
+│   ├── run_loop.sh            ← N회 반복 실행
+│   ├── parse_logs.py          ← 허니팟 로그 → dataset.csv (v4.0, 29컬럼)
+│   ├── validate.py            ← 데이터 품질 검증
+│   ├── feature_engineering.py ← dataset.csv → dataset_ml.csv
+│   └── label_data.py          ← 레이블링 (선택)
+│
+└── dashboard/
+    ├── backend/
+    │   ├── main.py            ← FastAPI 앱 (25개 엔드포인트)
+    │   ├── database.py        ← SQLAlchemy 모델 (User, ScenarioRun)
+    │   ├── docker_ops.py      ← 유저별 컨테이너 생성/제거
+    │   ├── scenario_runner.py ← 시나리오 스레드 실행 + 히스토리 저장
+    │   └── auth.py            ← JWT 인증
+    └── frontend/
+        ├── src/pages/         ← Dashboard.jsx, AdminDashboard.jsx, Login.jsx
+        └── src/components/    ← LogViewer, ScenarioMonitor, StatsCharts
 ```
 
 **로그 출력 경로 (repo 외부):**

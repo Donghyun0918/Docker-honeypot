@@ -1,16 +1,16 @@
 #!/bin/bash
 # lib/common.sh - 공통 유틸리티, IP, 페이로드 풀
 
-# ── 허니팟 IP ─────────────────────────────────────────────────────────────────
-COWRIE_IP="172.30.0.10"
-HERALDING_IP="172.30.0.11"
-OPENCANARY_IP="172.30.0.12"
-SNARE_IP="172.30.0.13"
-DIONAEA_IP="172.30.0.14"
-MAILONEY_IP="172.30.0.15"
-CONPOT_IP="172.30.0.16"
-TANNER_IP="172.30.0.17"
-ATTACKER_IP="172.30.0.20"
+# ── 허니팟 IP (환경변수 우선, 없으면 docker-compose 기본값) ───────────────────
+COWRIE_IP="${COWRIE_IP:-172.30.0.10}"
+HERALDING_IP="${HERALDING_IP:-172.30.0.11}"
+OPENCANARY_IP="${OPENCANARY_IP:-172.30.0.12}"
+SNARE_IP="${SNARE_IP:-172.30.0.13}"
+DIONAEA_IP="${DIONAEA_IP:-172.30.0.14}"
+MAILONEY_IP="${MAILONEY_IP:-172.30.0.15}"
+CONPOT_IP="${CONPOT_IP:-172.30.0.16}"
+TANNER_IP="${TANNER_IP:-172.30.0.17}"
+ATTACKER_IP="${ATTACKER_IP:-172.30.0.20}"
 ALL_HONEYPOT_IPS=("$COWRIE_IP" "$HERALDING_IP" "$OPENCANARY_IP" "$SNARE_IP" "$DIONAEA_IP" "$MAILONEY_IP" "$CONPOT_IP")
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 -p 2222"

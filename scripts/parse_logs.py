@@ -679,6 +679,16 @@ def write_csv(rows, fields, path):
 # ── 메인 ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--user", default=None, help="유저명 (지정 시 /honeypot_logs/{user}/ 경로 사용)")
+    args = ap.parse_args()
+
+    if args.user:
+        LOG_BASE           = Path(f"/honeypot_logs/{args.user}")
+        HERALDING_LOG_BASE = Path(f"/honeypot_logs/{args.user}/heralding")
+        OUT_BASE           = LOG_BASE
+
     print("=" * 55)
     print(f" 허니팟 로그 파서  v{PARSER_VERSION}")
     print(f" LOG_BASE:    {LOG_BASE}")

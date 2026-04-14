@@ -15,4 +15,4 @@ COPY opencanary.conf /etc/opencanaryd/opencanary.conf
 
 EXPOSE 21 3389 5900
 
-CMD ["opencanaryd", "--dev"]
+CMD ["sh", "-c", "rm -f /root/twistd.pid /tmp/twistd.pid && opencanaryd --dev"]
