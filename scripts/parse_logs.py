@@ -414,16 +414,37 @@ def parse_opencanary():
 
 # ── SNARE ─────────────────────────────────────────────────────────────────────
 
+# POST/PUT/DELETE/PATCH 또는 아래 패턴이 path에 포함되면 command (공격 시도)
+# 그 외 단순 GET/HEAD/OPTIONS는 scan (정찰/탐색)
+_SNARE_ATTACK_PATH = re.compile(
+    r'(\.\.|\.php|\.asp|\.jsp|\.cgi|\.sh|\.py|\.rb|'
+    r'admin|wp-|\.env|config|passwd|shadow|login|shell|'
+    r'eval|exec|cmd=|select\b|union\b|drop\b|insert\b|'
+    r'<script|%3c|%3e|%27|%22|\x27|\x22|/etc/|/proc/)',
+    re.IGNORECASE,
+)
+_SNARE_ACTIVE_METHODS = {"POST", "PUT", "DELETE", "PATCH"}
+
+
+def _snare_classify(method: str, path: str):
+    """HTTP method + path로 event_type / event_result 결정."""
+    m = method.upper()
+    if m in _SNARE_ACTIVE_METHODS or _SNARE_ATTACK_PATH.search(path):
+        return "command", "executed"
+    return "scan", "detected"
+
+
 def parse_snare():
     rows = []
 
-    def add(ts, src_ip, raw_cmd, src_port=""):
+    def add(ts, src_ip, raw_cmd, src_port="", method="GET", path=""):
+        ev_type, ev_result = _snare_classify(method, path)
         w, c, r = cmd_flags(raw_cmd)
         rows.append(make_row(
             timestamp=ts, src_ip=src_ip, src_port=src_port,
             dst_port=8080, protocol="HTTP",
-            source_honeypot="snare", event_type="command",
-            event_result="executed",
+            source_honeypot="snare", event_type=ev_type,
+            event_result=ev_result,
             command=raw_cmd, has_wget=w, has_curl=c, has_reverse_shell=r,
         ))
 
@@ -444,7 +465,7 @@ def parse_snare():
                 src_port = str(e.get("src_port", e.get("peer_port", "")))
                 method   = e.get("method", "GET")
                 raw_cmd  = f"{method} {path}" if path else path
-                add(ts, src_ip, raw_cmd, src_port)
+                add(ts, src_ip, raw_cmd, src_port, method=method, path=path)
 
     text_log = LOG_BASE / "snare" / "snare.log"
     if text_log.exists():
@@ -462,9 +483,11 @@ def parse_snare():
                     ts, src_ip   = m.group(1), m.group(2)
                     src_port     = m.group(3) or ""
                     method, path = m.group(4).upper(), m.group(5)
-                    add(ts, src_ip, f"{method} {path}", src_port)
+                    add(ts, src_ip, f"{method} {path}", src_port, method=method, path=path)
 
-    print(f"[snare] {len(rows)}행")
+    scan_cnt = sum(1 for r in rows if r["event_type"] == "scan")
+    cmd_cnt  = sum(1 for r in rows if r["event_type"] == "command")
+    print(f"[snare] {len(rows)}행 (scan={scan_cnt}, command={cmd_cnt})")
     return rows
 
 
